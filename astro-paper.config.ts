@@ -2,14 +2,14 @@ import { defineAstroPaperConfig } from "./src/types/config";
 
 export default defineAstroPaperConfig({
   site: {
-    url: "https://astro-paper.pages.dev/",
-    title: "AstroPaper",
-    description: "A minimal, responsive and SEO-friendly Astro blog theme.",
-    author: "Sat Naing",
-    profile: "https://satna.ing",
-    ogImage: "default-og.jpg",
-    lang: "en",
-    timezone: "Asia/Bangkok",
+    url: "https://thatsev.tech",
+    title: "MOIN26",
+    description: "",
+    author: "MOIN26",
+    profile: "",
+    ogImage: "",
+    lang: "de",
+    timezone: "Europe/Berlin",
     dir: "ltr",
   },
   posts: {
@@ -29,10 +29,8 @@ export default defineAstroPaperConfig({
     search: "pagefind",
   },
   socials: [
-    { name: "github",   url: "https://github.com/satnaing/astro-paper" },
-    { name: "x",        url: "https://x.com/username" },
-    { name: "linkedin", url: "https://www.linkedin.com/in/username/" },
-    { name: "mail",     url: "mailto:yourmail@gmail.com" },
+    { name: "github",   url: "https://github.com/MOINtwentysix" },
+    { name: "mail",     url: "mailto:hello@thatdev.tech" },
   ],
   shareLinks: [
     { name: "whatsapp", url: "https://wa.me/?text=" },
