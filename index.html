@@ -1,0 +1,1147 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Gem Clicker Universe</title>
+    
+    <!-- PWA & Native App Meta-Tags für echtes App-Feeling -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#030008">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@600;700&display=swap');
+        
+        /* App-Lock um Scrollen und elastisches Ziehen auf Mobilgeräten zu verhindern */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030008;
+            color: #f3f4f6;
+            font-family: 'Rajdhani', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        .font-hud {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .font-mono-retro {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Scanline Overlay für den Arcade-Röhrenmonitor-Look */
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.25;
+        }
+
+        /* Animierter Nebel-Hintergrund im Weltall */
+        .space-bg {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 10% 20%, rgba(244, 63, 94, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+            z-index: 1;
+            animation: pulseBg 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseBg {
+            0% { transform: scale(1); opacity: 0.9; }
+            100% { transform: scale(1.05); opacity: 1; }
+        }
+
+        /* Schwebender Edelstein-Effekt */
+        .gem-hover {
+            animation: floating 6s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-15px) rotate(1.5deg) scale(1.02); }
+        }
+
+        /* Partikeleffekt beim Klicken */
+        .laser-particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            animation: shoot 0.45s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+        }
+        @keyframes shoot {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(0.4);
+            }
+        }
+
+        /* Gläserne Benutzeroberfläche (Glassmorphism) */
+        .glass-panel {
+            background: rgba(10, 6, 22, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Verstecken von Standard-Scrollbalken */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <div class="space-bg"></div>
+
+    <!-- ================= SPLASH INTRO SCREEN ================= -->
+    <div id="intro-layer" class="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center p-6 text-center transition-all duration-1000">
+        <!-- M26 Games Branding -->
+        <div id="intro-branding" class="space-y-4 transition-all duration-700 opacity-0 transform scale-95">
+            <div class="text-[10px] uppercase tracking-[0.5em] text-purple-500 font-hud">PRESENTED BY</div>
+            <h2 class="text-4xl sm:text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-400 font-hud drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]">
+                M26 GAMES
+            </h2>
+            <div class="text-[10px] text-gray-500 font-mono-retro tracking-widest uppercase">BOOTING VECTORS & SOUND ENGINE...</div>
+        </div>
+
+        <!-- Titel & Ladebalken -->
+        <div id="intro-game" class="hidden flex-col items-center justify-center space-y-8 w-full max-w-sm">
+            <div class="relative">
+                <div class="absolute -inset-1 rounded-full bg-pink-500/30 blur-xl animate-pulse"></div>
+                <h1 class="text-4xl sm:text-5xl font-extrabold font-hud tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white via-purple-300 to-purple-600 drop-shadow-[0_4px_16px_rgba(168,85,247,0.7)]">
+                    GEM CLICKER
+                </h1>
+                <div class="text-[10px] font-hud tracking-[0.6em] text-pink-400 mt-2 text-center">UNIVERSE</div>
+            </div>
+
+            <!-- Terminal-Simulation beim Laden -->
+            <div class="w-full bg-purple-950/20 border border-purple-900/30 p-4 rounded-xl text-left h-24 overflow-hidden font-mono-retro text-[9px] text-purple-300/80 space-y-1">
+                <div id="log-1" class="opacity-0">> SYSTEM COGNITION ONLINE.</div>
+                <div id="log-2" class="opacity-0">> CONNECTING TO DEEP-SPACE STORAGE...</div>
+                <div id="log-3" class="opacity-0">> GEM-CORE GENERATOR LOADED.</div>
+                <div id="log-4" class="opacity-0">> PILOT CREDENTIALS SECURED.</div>
+            </div>
+
+            <!-- Fortschrittsanzeige -->
+            <div class="w-full bg-gray-950 h-3 rounded-full border border-purple-900/50 p-0.5 relative overflow-hidden">
+                <div id="load-bar" class="h-full bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-400 rounded-full w-0 transition-all duration-200"></div>
+                <span id="load-text" class="absolute inset-0 text-[9px] font-bold font-hud flex items-center justify-center text-white mix-blend-difference">0%</span>
+            </div>
+
+            <!-- Start-Knopf -->
+            <button id="btn-start-game" class="hidden px-10 py-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-hud font-extrabold text-xs tracking-widest rounded-2xl border-b-4 border-purple-950 shadow-lg shadow-purple-900/40 hover:brightness-110 active:scale-95 transition-all animate-bounce">
+                LAUNCH PILOT
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ================= SPIEL-UMGEBUNG ================= -->
+    <div id="game-layer" class="hidden w-full h-full flex flex-col justify-between relative z-10 p-4 sm:p-6 pb-2">
+        
+        <!-- ================= DER FREI SCHWEBENDE MASTER-EDELSTEIN ================= -->
+        <div class="absolute inset-0 flex flex-col justify-center items-center z-10 pointer-events-none">
+            
+            <!-- Live-Anzeige der gesammelten Edelsteine direkt über dem Gem -->
+            <div class="text-center mb-8 pointer-events-auto">
+                <span class="text-[10px] text-purple-400/80 uppercase tracking-[0.3em] font-hud block">SECURED ASSETS</span>
+                <div id="display-gems" class="text-5xl sm:text-7xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-purple-400 font-hud drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]">
+                    0
+                </div>
+                <div class="flex items-center justify-center gap-2 mt-1">
+                    <span id="display-gps" class="text-xs font-bold text-green-400 font-hud bg-green-500/10 px-2.5 py-0.5 rounded-full border border-green-500/20">0 GpS</span>
+                    <span id="display-multiplier" class="text-xs font-bold text-yellow-400 font-hud bg-yellow-500/10 px-2.5 py-0.5 rounded-full border border-yellow-500/20">1.0x Boost</span>
+                </div>
+            </div>
+
+            <!-- Interaktiver Klickbereich für den Edelstein -->
+            <div class="gem-hover w-60 h-60 sm:w-80 sm:h-80 pointer-events-auto cursor-pointer relative" id="active-touch-area">
+                <!-- Glühende Aura hinter dem Kristall -->
+                <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-600/10 to-pink-500/10 blur-3xl scale-125 animate-pulse"></div>
+                
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_0_40px_rgba(168,85,247,0.65)]">
+                    <defs>
+                        <radialGradient id="gemGrad" cx="30%" cy="30%" r="70%">
+                            <stop offset="0%" stop-color="#fda4af" />
+                            <stop offset="35%" stop-color="#f43f5e" />
+                            <stop offset="70%" stop-color="#9d174d" />
+                            <stop offset="100%" stop-color="#4c0519" />
+                        </radialGradient>
+                        <linearGradient id="glowHighlight" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+                            <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Facetten-Geometrie des Kristalls -->
+                    <polygon points="50,5 82,25 82,65 50,95 18,65 18,25" fill="url(#gemGrad)" />
+                    <polygon points="50,5 82,25 50,45" fill="url(#glowHighlight)" opacity="0.3" />
+                    <polygon points="50,5 18,25 50,45" fill="url(#glowHighlight)" opacity="0.45" />
+                    <polygon points="18,25 50,45 18,65" fill="url(#glowHighlight)" opacity="0.15" />
+                    
+                    <polyline points="18,25 50,45 82,25" stroke="#ffffff" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.5" />
+                    <line x1="50" y1="45" x2="50" y2="95" stroke="#ffffff" stroke-width="1" opacity="0.4" />
+                </svg>
+            </div>
+            
+            <div class="mt-8">
+                <span class="text-[9px] text-pink-400/60 font-hud tracking-[0.4em] uppercase animate-pulse">MULTI-TOUCH DETECTOR ACTIVE</span>
+            </div>
+        </div>
+
+        <!-- ================= OBERE HUD-LEISTE (Navigation) ================= -->
+        <div class="w-full flex justify-center items-center z-20 pointer-events-none">
+            <!-- Schwebende Tab-Auswahlknöpfe (Shop standardmäßig aktiv gestylt) -->
+            <div class="flex gap-1.5 pointer-events-auto">
+                <button onclick="toggleOverlay('upgrades')" id="btn-toggle-upgrades" class="glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-purple-300 border border-purple-500/80 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all bg-purple-500/10">
+                    <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Shop
+                </button>
+                <button onclick="toggleOverlay('prestige')" id="btn-toggle-prestige" class="glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-gray-400 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all">
+                    <i data-lucide="star" class="w-3.5 h-3.5"></i> Prestige
+                </button>
+                <button onclick="toggleOverlay('achievements')" id="btn-toggle-achievements" class="glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-gray-400 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all">
+                    <i data-lucide="award" class="w-3.5 h-3.5"></i> Badges
+                </button>
+                <button onclick="toggleOverlay('stats')" id="btn-toggle-stats" class="glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-gray-400 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all">
+                    <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Config
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= SEITLICHE SCHWEBENDE OVERLAYS ================= -->
+        <div class="absolute right-4 sm:right-6 top-20 bottom-16 w-full max-w-xs sm:max-w-sm z-30 pointer-events-none flex flex-col gap-4">
+            
+            <!-- COCKPIT DRAWER: SHOP UPGRADES (Standardmäßig geöffnet) -->
+            <div id="panel-upgrades" class="glass-panel rounded-2xl p-4 flex flex-col h-full pointer-events-auto transition-all duration-300 transform translate-x-0">
+                <div class="flex justify-between items-center border-b border-purple-900/30 pb-2 mb-2">
+                    <h3 class="font-hud text-[9px] text-purple-300 tracking-widest">MINING UPGRADES</h3>
+                    <span class="text-[9px] text-gray-500 font-mono-retro">AUTOMATION HUB</span>
+                </div>
+                <div id="upgrades-list" class="flex-grow overflow-y-auto no-scrollbar space-y-2">
+                    <!-- Wird dynamisch durch JavaScript geladen -->
+                </div>
+            </div>
+
+            <!-- COCKPIT DRAWER: PRESTIGE SYSTEM -->
+            <div id="panel-prestige" class="glass-panel rounded-2xl p-4 flex flex-col h-full pointer-events-auto hidden transition-all duration-300 transform translate-x-0">
+                <div class="flex justify-between items-center border-b border-purple-900/30 pb-2 mb-3">
+                    <h3 class="font-hud text-[9px] text-yellow-400 tracking-widest">SUPERNOVA COLLAPSE</h3>
+                    <span class="text-[9px] text-gray-500 font-mono-retro">COSMIC REBIRTH</span>
+                </div>
+                <div class="flex-grow flex flex-col justify-between gap-4">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-yellow-500/10 rounded-xl border border-yellow-500/20 text-yellow-400 flex items-center justify-center mx-auto animate-pulse">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-relaxed text-center font-semibold">
+                            Collapse your current extraction network to harvest radioactive PRESTIGE CRYSTALS. Each crystal boosts automated extraction rates by <span class="text-green-400 font-bold">+10%</span> permanently!
+                        </p>
+                        
+                        <div class="grid grid-cols-2 gap-2 bg-black/40 border border-purple-950 p-2.5 rounded-xl text-left">
+                            <div>
+                                <span class="text-[8px] text-gray-500 block uppercase font-hud">Active Boost</span>
+                                <span id="prestige-current-bonus" class="text-xs font-bold text-yellow-400">+0% Boost</span>
+                            </div>
+                            <div>
+                                <span class="text-[8px] text-gray-500 block uppercase font-hud">Pending Crystals</span>
+                                <span id="prestige-pending-points" class="text-xs font-bold text-green-400">+0 Crystals</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button id="btn-prestige" onclick="triggerPrestige()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-hud font-bold py-2.5 px-4 rounded-xl text-[9px] tracking-widest transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed border-b-2 border-amber-800">
+                            COLLAPSE SYSTEM
+                        </button>
+                        <p class="text-[8px] text-center text-gray-500">Requires at least 1 Million life-time harvested gems.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COCKPIT DRAWER: ACHIEVEMENTS -->
+            <div id="panel-achievements" class="glass-panel rounded-2xl p-4 flex flex-col h-full pointer-events-auto hidden transition-all duration-300 transform translate-x-0">
+                <div class="flex justify-between items-center border-b border-purple-900/30 pb-2 mb-2">
+                    <h3 class="font-hud text-[9px] text-pink-400 tracking-widest">LOGGED MILESTONES</h3>
+                    <span id="completed-achievements-ratio" class="text-[9px] text-pink-400 font-mono-retro">0/8 SECURED</span>
+                </div>
+                <div id="achievements-list" class="flex-grow overflow-y-auto no-scrollbar space-y-2">
+                    <!-- Wird dynamisch durch JavaScript geladen -->
+                </div>
+            </div>
+
+            <!-- COCKPIT DRAWER: ENGINE CONFIG / SAVE MANAGER -->
+            <div id="panel-stats" class="glass-panel rounded-2xl p-4 flex flex-col h-full pointer-events-auto hidden transition-all duration-300 transform translate-x-0">
+                <div class="flex justify-between items-center border-b border-purple-900/30 pb-2 mb-2">
+                    <h3 class="font-hud text-[9px] text-cyan-400 tracking-widest">ENGINE CONFIG</h3>
+                    <span class="text-[9px] text-gray-500 font-mono-retro">SYS-STATUS</span>
+                </div>
+                <div class="flex-grow overflow-y-auto no-scrollbar space-y-3.5 pr-1">
+                    <!-- Sound- und Musikkontrollen direkt hier integriert -->
+                    <div class="space-y-2">
+                        <span class="text-[8px] text-gray-500 font-hud tracking-wider uppercase block">SOUND & MELODY ENGINE</span>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button id="btn-sound" class="p-2 text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-xl hover:bg-purple-900/20 transition text-[9px] font-bold flex items-center justify-center gap-1">
+                                <i id="sound-icon" data-lucide="volume-2" class="w-3.5 h-3.5"></i> SFX
+                            </button>
+                            <button id="btn-music" class="p-2 text-pink-400 bg-pink-500/10 border border-pink-500/20 rounded-xl hover:bg-pink-900/20 transition text-[9px] font-bold flex items-center justify-center gap-1">
+                                <i id="music-icon" data-lucide="music" class="w-3.5 h-3.5"></i> MUSIC
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statistikmatrix -->
+                    <div class="grid grid-cols-2 gap-2 bg-black/40 border border-purple-950 p-2 rounded-xl text-left">
+                        <div>
+                            <span class="text-[8px] text-gray-500 block uppercase font-hud">Vault Gems</span>
+                            <span id="stat-current" class="text-xs font-bold text-white">0</span>
+                        </div>
+                        <div>
+                            <span class="text-[8px] text-gray-500 block uppercase font-hud">Total Harvested</span>
+                            <span id="stat-lifetime" class="text-xs font-bold text-white">0</span>
+                        </div>
+                        <div>
+                            <span class="text-[8px] text-gray-500 block uppercase font-hud">Tap Events</span>
+                            <span id="stat-clicks" class="text-xs font-bold text-white">0</span>
+                        </div>
+                        <div>
+                            <span class="text-[8px] text-gray-500 block uppercase font-hud">Session Time</span>
+                            <span id="stat-time" class="text-xs font-bold text-white">0s</span>
+                        </div>
+                    </div>
+
+                    <!-- Import/Export Modul -->
+                    <div class="space-y-2 pt-2 border-t border-purple-950/40">
+                        <span class="text-[8px] text-purple-400 font-hud tracking-wider uppercase block">DATALINK TRANSCEIVER</span>
+                        <textarea id="save-code-area" readonly placeholder="Exported code..." class="w-full bg-black/60 border border-purple-950 p-2 rounded-xl text-[9px] font-mono-retro text-purple-300 focus:outline-none resize-none h-12"></textarea>
+                        
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button onclick="exportSaveCode()" class="bg-purple-950/40 hover:bg-purple-900/50 border border-purple-800/40 text-purple-300 font-hud font-bold py-1.5 rounded-lg text-[8px] tracking-wider transition-all">
+                                EXPORT CODE
+                            </button>
+                            <button onclick="promptImportCode()" class="bg-pink-950/40 hover:bg-pink-900/50 border border-pink-800/40 text-pink-300 font-hud font-bold py-1.5 rounded-lg text-[8px] tracking-wider transition-all">
+                                IMPORT CODE
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Zurücksetzen und Spielstand erzwingen -->
+                    <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-purple-950/40">
+                        <button onclick="saveGame(true)" class="bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 font-hud font-bold py-1.5 rounded-lg text-[8px] tracking-wider transition-all">
+                            FORCE SAVE
+                        </button>
+                        <button onclick="resetGamePrompt()" class="bg-red-950/30 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-hud font-bold py-1.5 rounded-lg text-[8px] tracking-wider transition-all">
+                            MEM-WIPEOUT
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= SCHWEBENDER FOOTER ================= -->
+        <div class="w-full flex justify-between items-center z-20 pointer-events-none mt-auto">
+            <span class="font-mono-retro text-[8px] text-gray-600 tracking-wider">No (c) 2026 M26 Games - Not a Real Company</span>
+            <div class="flex items-center gap-3 text-purple-400/80 pointer-events-auto text-[9px] font-hud tracking-wider uppercase">
+                <span class="hover:text-purple-300 cursor-pointer" onclick="showModal('shield', 'SECURE VAULT', 'All game values are stored strictly inside your local client browser cache.')">DATALINK SAFE</span>
+                <span>•</span>
+                <span class="hover:text-purple-300 cursor-pointer" onclick="showChangelog()">CHANGELOG</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DIALOG MODAL -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/95 z-[10000] hidden items-center justify-center p-4">
+        <div class="bg-[#0c0617] border-2 border-purple-500/80 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
+            <div id="modal-icon-container" class="flex justify-center text-yellow-400 animate-pulse">
+                <!-- Icon -->
+            </div>
+            <h3 id="modal-title" class="font-hud text-xs text-white tracking-widest"></h3>
+            <p id="modal-desc" class="text-xs text-gray-400 leading-relaxed"></p>
+            
+            <div class="flex gap-3 pt-2">
+                <button id="modal-btn-cancel" class="flex-1 bg-gray-950 border border-gray-800 text-gray-400 py-2.5 px-4 rounded-xl font-hud font-bold text-[9px] tracking-wider transition">
+                    DISMISS
+                </button>
+                <button id="modal-btn-confirm" class="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white py-2.5 px-4 rounded-xl font-hud font-bold text-[9px] tracking-wider transition-all border-b-4 border-purple-950">
+                    CONFIRM
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CODE IMPORT DIALOG MODAL -->
+    <div id="import-modal" class="fixed inset-0 bg-black/95 z-[10000] hidden items-center justify-center p-4">
+        <div class="bg-[#0c0617] border-2 border-pink-500/80 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
+            <div class="flex justify-center text-pink-400">
+                <i data-lucide="key-round" class="w-10 h-10"></i>
+            </div>
+            <h3 class="font-hud text-xs text-white tracking-widest">IMPORT PROGRESS DATA</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Paste your encrypted save code below to restore your progress.</p>
+            
+            <textarea id="import-code-input" placeholder="Paste progress code here..." class="w-full bg-black/80 border border-purple-950 p-2.5 rounded-xl text-[9px] font-mono-retro text-pink-300 focus:outline-none resize-none h-20"></textarea>
+
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeImportModal()" class="flex-1 bg-gray-950 border border-gray-800 text-gray-400 py-2.5 px-4 rounded-xl font-hud font-bold text-[9px] tracking-wider transition">
+                    CANCEL
+                </button>
+                <button onclick="executeImport()" class="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white py-2.5 px-4 rounded-xl font-hud font-bold text-[9px] tracking-wider transition-all border-b-4 border-purple-950">
+                    IMPORT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WEB AUDIO SYSTEM (Synthetische Soundeffekte und Musik)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+        let musicEnabled = false;
+        let musicInterval = null;
+        let musicBeat = 0;
+
+        // Prozedurale Hintergrundmusik (Synthwave-Arpeggiator)
+        function playProceduralMusic() {
+            if (!musicEnabled) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const scale = [110.00, 130.81, 146.83, 164.81, 196.00]; // A2, C3, D3, E3, G3
+            const melody = [220.00, 261.63, 293.66, 329.63, 392.00, 440.00]; // A3 bis A4
+            const now = audioCtx.currentTime;
+
+            try {
+                // Monofone Basslinie
+                const bass = audioCtx.createOscillator();
+                const bassGain = audioCtx.createGain();
+                bass.connect(bassGain);
+                bassGain.connect(audioCtx.destination);
+                bass.type = 'sawtooth';
+                bass.frequency.setValueAtTime(scale[musicBeat % scale.length], now);
+                bassGain.gain.setValueAtTime(0.04, now);
+                bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                bass.start(now);
+                bass.stop(now + 0.24);
+
+                // Lead Melodie-Beeps
+                if (musicBeat % 2 === 0) {
+                    const lead = audioCtx.createOscillator();
+                    const leadGain = audioCtx.createGain();
+                    lead.connect(leadGain);
+                    leadGain.connect(audioCtx.destination);
+                    lead.type = 'sine';
+                    lead.frequency.setValueAtTime(melody[Math.floor(Math.random() * melody.length)], now);
+                    leadGain.gain.setValueAtTime(0.025, now);
+                    leadGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    lead.start(now);
+                    lead.stop(now + 0.17);
+                }
+
+                musicBeat++;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            const btn = document.getElementById('btn-music');
+            const icon = document.getElementById('music-icon');
+            if (musicEnabled) {
+                icon.setAttribute('data-lucide', 'music-4');
+                btn.className = "p-2 text-pink-400 bg-pink-500/10 border border-pink-500/20 rounded-xl hover:bg-pink-900/20 transition text-[9px] font-bold flex items-center justify-center gap-1";
+                musicInterval = setInterval(playProceduralMusic, 220);
+            } else {
+                icon.setAttribute('data-lucide', 'music');
+                btn.className = "p-2 text-gray-400 hover:text-pink-400 hover:bg-white/5 rounded-xl transition border border-transparent text-[9px] font-bold flex items-center justify-center gap-1";
+                if (musicInterval) clearInterval(musicInterval);
+            }
+            lucide.createIcons();
+        }
+
+        function playSynthSFX(type) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(450 + Math.random() * 500, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'upgrade') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(330, now);
+                    osc.frequency.setValueAtTime(440, now + 0.08);
+                    osc.frequency.setValueAtTime(554, now + 0.16);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'prestige') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(80, now);
+                    osc.frequency.exponentialRampToValueAtTime(1000, now + 0.6);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                } else if (type === 'achievement') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.setValueAtTime(659, now + 0.08);
+                    osc.frequency.setValueAtTime(784, now + 0.16);
+                    osc.frequency.setValueAtTime(1046, now + 0.24);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        // KERN-DATENSATZ DES SPIELS (Komplett auf Englisch)
+        let game = {
+            gems: 0,
+            totalGemsEarned: 0,
+            clicks: 0,
+            prestigePoints: 0,
+            prestigeCount: 0,
+            playTime: 0,
+            upgrades: {
+                pickaxe: { count: 0, basePrice: 15, gps: 0.1, label: 'Laser-Pick', desc: 'Synthesizes small raw materials.', icon: 'hammer' },
+                drill: { count: 0, basePrice: 100, gps: 1, label: 'Plasma-Drill', desc: 'Bores holes into asteroids.', icon: 'cpu' },
+                miner: { count: 0, basePrice: 1100, gps: 8, label: 'Robo-Miner', desc: 'Cybernetic mining drones.', icon: 'bot' },
+                refinery: { count: 0, basePrice: 12000, gps: 47, label: 'Quantum-Factory', desc: 'Polishes rough diamond cores.', icon: 'factory' },
+                portal: { count: 0, basePrice: 130000, gps: 260, label: 'Hyperspace-Rift', desc: 'Imports exotic minerals.', icon: 'waypoints' },
+                alchemist: { count: 0, basePrice: 1400000, gps: 1400, label: 'Nano-Alchemist', desc: 'Turns junk dust into pure gems.', icon: 'sparkles' },
+                nebula: { count: 0, basePrice: 20000000, gps: 7800, label: 'Nebula-Vacuum', desc: 'Sweeps whole stellar sectors.', icon: 'cloud-lightning' }
+            },
+            achievements: {
+                clicks_10: { unlocked: false, title: 'First Taps', desc: 'Manually tap the core 10 times.', condition: (g) => g.clicks >= 10 },
+                clicks_100: { unlocked: false, title: 'Rapid Reflexes', desc: 'Manually tap the core 100 times.', condition: (g) => g.clicks >= 100 },
+                gems_1000: { unlocked: false, title: 'Gem Storage', desc: 'Hold 1,000 active gems in your vaults.', condition: (g) => g.gems >= 1000 },
+                gems_100k: { unlocked: false, title: 'Stellar Wealth', desc: 'Earn a total of 100,000 gems.', condition: (g) => g.totalGemsEarned >= 100000 },
+                gems_10m: { unlocked: false, title: 'Mega Syndicate', desc: 'Amass 10 million gems in your vault.', condition: (g) => g.gems >= 10000000 },
+                upgrade_10: { unlocked: false, title: 'Laser Cluster', desc: 'Acquire more than 10 Laser-Picks.', condition: (g) => g.upgrades.pickaxe.count >= 10 },
+                all_upgrades: { unlocked: false, title: 'Fully Geared', desc: 'Own at least one upgrade of each kind.', condition: (g) => Object.values(g.upgrades).every(u => u.count > 0) },
+                prestige_once: { unlocked: false, title: 'New Era', desc: 'Rebirth your universe for the first time.', condition: (g) => g.prestigeCount >= 1 }
+            }
+        };
+
+        // Formatiert große Zahlen lesbar
+        function formatNumber(num) {
+            if (num < 1000) return num.toFixed(1).replace('.0', '');
+            if (num < 1000000) return (num / 1000).toFixed(2).replace('.00', '') + ' k';
+            if (num < 1000000000) return (num / 1000000).toFixed(2).replace('.00', '') + ' M';
+            return (num / 1000000000).toFixed(3).replace('.000', '') + ' B';
+        }
+
+        // Berechnet die gesamten Edelsteine pro Sekunde
+        function calculateGPS() {
+            let gps = 0;
+            for (const key in game.upgrades) {
+                gps += game.upgrades[key].count * game.upgrades[key].gps;
+            }
+            return gps * (1 + (game.prestigePoints * 0.1));
+        }
+
+        function getUpgradePrice(key) {
+            return Math.floor(game.upgrades[key].basePrice * Math.pow(1.15, game.upgrades[key].count));
+        }
+
+        // Oberfläche aktualisieren
+        function updateUI() {
+            document.getElementById('display-gems').innerText = formatNumber(game.gems);
+            document.getElementById('display-gps').innerText = formatNumber(calculateGPS()) + ' GpS';
+            document.getElementById('display-multiplier').innerText = (1 + (game.prestigePoints * 0.1)).toFixed(1) + 'x';
+
+            renderUpgrades();
+
+            document.getElementById('stat-current').innerText = formatNumber(game.gems);
+            document.getElementById('stat-lifetime').innerText = formatNumber(game.totalGemsEarned);
+            document.getElementById('stat-clicks').innerText = game.clicks;
+            document.getElementById('stat-time').innerText = game.playTime + 's';
+
+            const calculatedPrestige = calculatePrestigePointsToEarn();
+            document.getElementById('prestige-current-bonus').innerText = `+${game.prestigePoints * 10}% Boost`;
+            document.getElementById('prestige-pending-points').innerText = `+${calculatedPrestige} Crystals`;
+
+            const prestigeBtn = document.getElementById('btn-prestige');
+            if (game.totalGemsEarned < 1000000) {
+                prestigeBtn.disabled = true;
+                prestigeBtn.innerText = "COSMIC BARRIER (1M REQUIRED)";
+            } else {
+                prestigeBtn.disabled = false;
+                prestigeBtn.innerText = `TRIGGER REBIRTH CYCLE (+${calculatedPrestige})`;
+            }
+
+            let totalAchievements = Object.keys(game.achievements).length;
+            let unlockedAchievements = Object.values(game.achievements).filter(a => a.unlocked).length;
+            document.getElementById('completed-achievements-ratio').innerText = `${unlockedAchievements}/${totalAchievements} DONE`;
+        }
+
+        // Upgrades im Shop auflisten
+        function renderUpgrades() {
+            const listContainer = document.getElementById('upgrades-list');
+            listContainer.innerHTML = '';
+
+            for (const key in game.upgrades) {
+                const upgrade = game.upgrades[key];
+                const price = getUpgradePrice(key);
+                const canBuy = game.gems >= price;
+
+                const card = document.createElement('div');
+                card.className = `flex justify-between items-center p-3 bg-black/45 rounded-xl border ${canBuy ? 'border-purple-500/30' : 'border-transparent'} transition-all gap-2`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-purple-950/40 rounded-xl text-purple-400 border border-purple-900/20">
+                            <i data-lucide="${upgrade.icon}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-xs font-bold text-gray-200 flex items-center gap-1.5 flex-wrap">
+                                <span>${upgrade.label}</span>
+                                <span class="bg-purple-900/30 text-purple-300 text-[9px] font-bold px-1.5 py-0.2 rounded-full">x${upgrade.count}</span>
+                            </div>
+                            <span class="text-[9px] text-pink-400 font-bold">+${formatNumber(upgrade.gps)} GpS</span>
+                        </div>
+                    </div>
+                    <button onclick="buyUpgrade('${key}')" ${!canBuy ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl font-bold text-xs tracking-wide transition-all ${canBuy ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-md active:scale-95 border-b-2 border-purple-800' : 'bg-gray-950 text-gray-600 border border-gray-900 cursor-not-allowed'}">
+                        ${formatNumber(price)} 💎
+                    </button>
+                `;
+                listContainer.appendChild(card);
+            }
+            lucide.createIcons();
+        }
+
+        // Erfolge auflisten
+        function renderAchievements() {
+            const listContainer = document.getElementById('achievements-list');
+            listContainer.innerHTML = '';
+
+            for (const key in game.achievements) {
+                const ach = game.achievements[key];
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border flex items-center gap-2.5 transition ${ach.unlocked ? 'bg-pink-950/10 border-pink-500/20 text-white' : 'bg-black/30 border-gray-900 text-gray-500 opacity-50'}`;
+
+                card.innerHTML = `
+                    <div class="p-1.5 rounded-lg ${ach.unlocked ? 'bg-pink-500/20 text-pink-400' : 'bg-gray-950 text-gray-700'}">
+                        <i data-lucide="award" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <h4 class="font-hud font-bold text-[9px] ${ach.unlocked ? 'text-pink-300' : 'text-gray-500'}">${ach.title}</h4>
+                        <p class="text-[9px] ${ach.unlocked ? 'text-gray-300' : 'text-gray-500'}">${ach.desc}</p>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            }
+            lucide.createIcons();
+        }
+
+        // Einblenden/Ausblenden der seitlichen Konsolen-Overlays
+        function toggleOverlay(overlayName) {
+            const panels = ['upgrades', 'prestige', 'achievements', 'stats'];
+            
+            panels.forEach(p => {
+                const panel = document.getElementById(`panel-${p}`);
+                const btn = document.getElementById(`btn-toggle-${p}`);
+                
+                if (p === overlayName) {
+                    if (panel.classList.contains('hidden')) {
+                        panel.classList.remove('hidden');
+                        btn.className = "glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-purple-300 border border-purple-500/80 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all bg-purple-500/10";
+                        if(p === 'achievements') renderAchievements();
+                    } else {
+                        panel.classList.add('hidden');
+                        btn.className = "glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-gray-400 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all";
+                    }
+                } else {
+                    panel.classList.add('hidden');
+                    btn.className = "glass-panel px-3 py-1.5 rounded-xl font-hud font-bold text-[9px] text-gray-400 uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all";
+                }
+            });
+            
+            lucide.createIcons();
+        }
+
+        // COGNITIVE MULTI-POINTER EVENT HANDLER
+        const activeTouchArea = document.getElementById('active-touch-area');
+
+        function handlePointerDown(e) {
+            e.preventDefault();
+
+            // Squeeze-Animation für direkte physische Rückmeldung
+            activeTouchArea.style.transform = 'scale(0.92)';
+            setTimeout(() => {
+                activeTouchArea.style.transform = 'scale(1)';
+            }, 60);
+
+            // Genaue Koordinaten auf dem Bildschirm ermitteln
+            const container = document.getElementById('game-layer');
+            const rect = container.getBoundingClientRect();
+            const posX = e.clientX - rect.left;
+            const posY = e.clientY - rect.top;
+
+            // Klickwert-Formel
+            const baseVal = 1;
+            const multiplier = 1 + (game.prestigePoints * 0.1);
+            const clickValue = Math.floor((baseVal + (game.upgrades.pickaxe.count * 0.5)) * multiplier);
+
+            game.gems += clickValue;
+            game.totalGemsEarned += clickValue;
+            game.clicks++;
+
+            playSynthSFX('click');
+            spawnLaserParticle(posX, posY, `+${formatNumber(clickValue)}`);
+            checkAchievements();
+            updateUI();
+        }
+
+        // Pointer-Event registriert Maus- und Toucheingaben gleichzeitig
+        activeTouchArea.addEventListener('pointerdown', handlePointerDown);
+
+        function spawnLaserParticle(x, y, text) {
+            const container = document.getElementById('game-layer');
+            const particle = document.createElement('div');
+            const tx = (Math.random() - 0.5) * 160;
+            const ty = -110 - Math.random() * 90;
+
+            particle.className = 'laser-particle font-hud text-xs text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-500 drop-shadow-[0_0_6px_rgba(236,72,153,0.9)]';
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            particle.style.setProperty('--tx', `${tx}px`);
+            particle.style.setProperty('--ty', `${ty}px`);
+            particle.innerText = text;
+
+            container.appendChild(particle);
+
+            setTimeout(() => {
+                particle.remove();
+            }, 450);
+        }
+
+        function buyUpgrade(key) {
+            const price = getUpgradePrice(key);
+            if (game.gems >= price) {
+                game.gems -= price;
+                game.upgrades[key].count++;
+                playSynthSFX('upgrade');
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function calculatePrestigePointsToEarn() {
+            if (game.totalGemsEarned < 1000000) return 0;
+            return Math.floor(Math.sqrt(game.totalGemsEarned / 1000000) * 10);
+        }
+
+        function triggerPrestige() {
+            const pendingPoints = calculatePrestigePointsToEarn();
+            if (pendingPoints > 0) {
+                showModal(
+                    'sparkles',
+                    'PRESTIGE ASCENSION',
+                    `Do you want to collapse the matrix? Your upgrades and current gems will be cleared. In return, you will gain +${pendingPoints * 10}% production boost permanently!`,
+                    () => {
+                        game.prestigePoints += pendingPoints;
+                        game.prestigeCount++;
+                        game.gems = 0;
+                        for (const key in game.upgrades) {
+                            game.upgrades[key].count = 0;
+                        }
+                        playSynthSFX('prestige');
+                        checkAchievements();
+                        updateUI();
+                        saveGame();
+                        toggleOverlay('upgrades');
+                    },
+                    true
+                );
+            }
+        }
+
+        function checkAchievements() {
+            let newlyUnlocked = false;
+            for (const key in game.achievements) {
+                const ach = game.achievements[key];
+                if (!ach.unlocked && ach.condition(game)) {
+                    ach.unlocked = true;
+                    newlyUnlocked = true;
+                    showAchievementBanner(ach.title, ach.desc);
+                    playSynthSFX('achievement');
+                }
+            }
+            if (newlyUnlocked) {
+                renderAchievements();
+            }
+        }
+
+        function showAchievementBanner(title, desc) {
+            const banner = document.createElement('div');
+            banner.className = 'fixed bottom-16 left-1/2 -translate-x-1/2 glass-panel p-4 rounded-2xl shadow-2xl flex items-center gap-3 z-[9999] animate-bounce max-w-xs w-full';
+            banner.innerHTML = `
+                <div class="p-1.5 bg-pink-500/20 text-pink-400 rounded-xl">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                </div>
+                <div class="text-left">
+                    <h4 class="font-hud text-[9px] text-pink-400">ACHIEVEMENT UNLOCKED!</h4>
+                    <p class="text-xs text-white font-bold">${title}</p>
+                    <p class="text-[9px] text-gray-400">${desc}</p>
+                </div>
+            `;
+            document.body.appendChild(banner);
+            lucide.createIcons();
+            setTimeout(() => {
+                banner.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                setTimeout(() => banner.remove(), 500);
+            }, 3500);
+        }
+
+        function showModal(icon, title, desc, onConfirm, showCancel = false) {
+            const modal = document.getElementById('custom-modal');
+            const iconContainer = document.getElementById('modal-icon-container');
+            const btnCancel = document.getElementById('modal-btn-cancel');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+
+            iconContainer.innerHTML = `<i data-lucide="${icon}" class="w-10 h-10"></i>`;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+
+            if (showCancel) btnCancel.classList.remove('hidden');
+            else btnCancel.classList.add('hidden');
+
+            btnConfirm.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                if (onConfirm) onConfirm();
+            };
+
+            btnCancel.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        // CODES SYSTEM (IMPORT / EXPORT)
+        function exportSaveCode() {
+            try {
+                const saveState = {
+                    gems: game.gems,
+                    totalGemsEarned: game.totalGemsEarned,
+                    clicks: game.clicks,
+                    prestigePoints: game.prestigePoints,
+                    prestigeCount: game.prestigeCount,
+                    playTime: game.playTime,
+                    upgrades: {}
+                };
+                for (const key in game.upgrades) {
+                    saveState.upgrades[key] = game.upgrades[key].count;
+                }
+                const serialized = JSON.stringify(saveState);
+                const encoded = btoa(unescape(encodeURIComponent(serialized)));
+                
+                const codeArea = document.getElementById('save-code-area');
+                codeArea.value = encoded;
+                codeArea.select();
+                
+                document.execCommand('copy');
+                showModal('copy', 'SAVE EXPORTED & COPIED', 'Your encrypted save code has been copied to the clipboard. Store it somewhere safe!');
+            } catch (e) {
+                showModal('triangle-alert', 'EXPORT FAILIURE', 'Could not compile and export database.');
+            }
+        }
+
+        function promptImportCode() {
+            document.getElementById('import-code-input').value = "";
+            document.getElementById('import-modal').classList.remove('hidden');
+            document.getElementById('import-modal').classList.add('flex');
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal').classList.add('hidden');
+            document.getElementById('import-modal').classList.remove('flex');
+        }
+
+        function executeImport() {
+            const rawCode = document.getElementById('import-code-input').value.trim();
+            if (!rawCode) return;
+
+            try {
+                const decoded = decodeURIComponent(escape(atob(rawCode)));
+                const parsed = JSON.parse(decoded);
+
+                if (parsed.gems !== undefined) game.gems = parsed.gems;
+                if (parsed.totalGemsEarned !== undefined) game.totalGemsEarned = parsed.totalGemsEarned;
+                if (parsed.clicks !== undefined) game.clicks = parsed.clicks;
+                if (parsed.prestigePoints !== undefined) game.prestigePoints = parsed.prestigePoints;
+                if (parsed.prestigeCount !== undefined) game.prestigeCount = parsed.prestigeCount;
+                if (parsed.playTime !== undefined) game.playTime = parsed.playTime;
+
+                if (parsed.upgrades) {
+                    for (const key in parsed.upgrades) {
+                        if (game.upgrades[key]) game.upgrades[key].count = parsed.upgrades[key];
+                    }
+                }
+
+                closeImportModal();
+                saveGame();
+                updateUI();
+                playSynthSFX('upgrade');
+                showModal('check', 'RESTORE COMPLETED', 'Your stellar progress has been successfully synchronized!');
+            } catch (e) {
+                showModal('triangle-alert', 'CORRUPT COGNITION', 'The provided save code is malformed or invalid.');
+            }
+        }
+
+        function resetGamePrompt() {
+            showModal(
+                'trash-2',
+                'MEM-WIPEOUT WARNING',
+                'This will destroy all assets, rebirth status, and unlocked database logs forever. Are you sure you want to perform a factory reset?',
+                () => {
+                    localStorage.removeItem('m26_pwa_save_free');
+                    localStorage.removeItem('moin26_pwa_save_free');
+                    location.reload();
+                },
+                true
+            );
+        }
+
+        function saveGame(manual = false) {
+            const saveData = {
+                gems: game.gems,
+                totalGemsEarned: game.totalGemsEarned,
+                clicks: game.clicks,
+                prestigePoints: game.prestigePoints,
+                prestigeCount: game.prestigeCount,
+                playTime: game.playTime,
+                upgrades: {}
+            };
+            for (const key in game.upgrades) {
+                saveData.upgrades[key] = game.upgrades[key].count;
+            }
+            saveData.unlockedAchievements = [];
+            for (const key in game.achievements) {
+                if (game.achievements[key].unlocked) saveData.unlockedAchievements.push(key);
+            }
+            localStorage.setItem('m26_pwa_save_free', JSON.stringify(saveData));
+            if (manual) {
+                showModal('save', 'SYSTEM SNAPSHOT CREATED', 'All progressive data matrices have been backed up in local flash RAM.');
+            }
+        }
+
+        function loadGame() {
+            // Versuche den neuen Speicherort auszulesen (M26 Games)
+            let raw = localStorage.getItem('m26_pwa_save_free');
+            
+            // Wenn kein Spielstand vorhanden ist, migriere alte Daten von "moin26"
+            if (!raw) {
+                raw = localStorage.getItem('moin26_pwa_save_free');
+                if (raw) {
+                    localStorage.setItem('m26_pwa_save_free', raw);
+                }
+            }
+
+            if (raw) {
+                try {
+                    const saveData = JSON.parse(raw);
+                    if (saveData.gems !== undefined) game.gems = saveData.gems;
+                    if (saveData.totalGemsEarned !== undefined) game.totalGemsEarned = saveData.totalGemsEarned;
+                    if (saveData.clicks !== undefined) game.clicks = saveData.clicks;
+                    if (saveData.prestigePoints !== undefined) game.prestigePoints = saveData.prestigePoints;
+                    if (saveData.prestigeCount !== undefined) game.prestigeCount = saveData.prestigeCount;
+                    if (saveData.playTime !== undefined) game.playTime = saveData.playTime;
+
+                    if (saveData.upgrades) {
+                        for (const key in saveData.upgrades) {
+                            if (game.upgrades[key]) game.upgrades[key].count = saveData.upgrades[key];
+                        }
+                    }
+                    if (saveData.unlockedAchievements) {
+                        saveData.unlockedAchievements.forEach(key => {
+                            if (game.achievements[key]) game.achievements[key].unlocked = true;
+                        });
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+
+        // Steuerelemente (Sound & Musik)
+        document.getElementById('btn-sound').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            const btn = document.getElementById('btn-sound');
+            if (soundEnabled) {
+                icon.setAttribute('data-lucide', 'volume-2');
+                btn.className = "p-2 text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-xl hover:bg-purple-900/20 transition text-[9px] font-bold flex items-center justify-center gap-1";
+            } else {
+                icon.setAttribute('data-lucide', 'volume-x');
+                btn.className = "p-2 text-gray-400 bg-white/5 border border-transparent rounded-xl hover:bg-purple-950 transition text-[9px] font-bold flex items-center justify-center gap-1";
+            }
+            lucide.createIcons();
+        });
+        document.getElementById('btn-music').addEventListener('click', toggleMusic);
+
+        // Laden und Startanimationen
+        window.onload = function() {
+            lucide.createIcons();
+            loadGame();
+
+            setTimeout(() => {
+                const branding = document.getElementById('intro-branding');
+                branding.classList.remove('opacity-0', 'scale-95');
+                branding.classList.add('opacity-100', 'scale-100');
+            }, 400);
+
+            setTimeout(() => {
+                const branding = document.getElementById('intro-branding');
+                branding.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    branding.classList.add('hidden');
+                    const gameLayerIntro = document.getElementById('intro-game');
+                    gameLayerIntro.classList.remove('hidden');
+                    gameLayerIntro.classList.add('flex');
+                    startBootLoading();
+                }, 600);
+            }, 2700);
+        };
+
+        function startBootLoading() {
+            let progress = 0;
+            const bar = document.getElementById('load-bar');
+            const text = document.getElementById('load-text');
+            const btn = document.getElementById('btn-start-game');
+
+            const intervals = [
+                { t: 300, l: 'log-1' },
+                { t: 800, l: 'log-2' },
+                { t: 1300, l: 'log-3' },
+                { t: 1800, l: 'log-4' }
+            ];
+
+            intervals.forEach(i => {
+                setTimeout(() => {
+                    const l = document.getElementById(i.l);
+                    if (l) l.classList.remove('opacity-0');
+                }, i.t);
+            });
+
+            const loadingInterval = setInterval(() => {
+                progress += Math.floor(Math.random() * 8) + 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadingInterval);
+                    btn.classList.remove('hidden');
+                }
+                bar.style.width = `${progress}%`;
+                text.innerText = `${progress}%`;
+            }, 80);
+        }
+
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            playSynthSFX('upgrade');
+
+            const intro = document.getElementById('intro-layer');
+            intro.classList.add('opacity-0');
+            setTimeout(() => {
+                intro.classList.add('hidden');
+                document.getElementById('game-layer').classList.remove('hidden');
+                updateUI();
+                
+                // Aktiviert das Shop-Overlay standardmäßig beim Start
+                toggleOverlay('upgrades');
+            }, 800);
+        });
+
+        function showChangelog() {
+            showModal(
+                'info',
+                'NATIVE RE-DESIGN v1.7',
+                'Welcome to M26 Games update! Your local storage save is fully migrated to our new system under M26 Games. Shop drawer is now active by default.'
+            );
+        }
+
+        // Hohe Taktungsfrequenz für geschmeidige Punkte-Updates (100ms)
+        let lastTick = Date.now();
+        setInterval(() => {
+            const now = Date.now();
+            const delta = (now - lastTick) / 1000;
+            lastTick = now;
+
+            const gps = calculateGPS();
+            if (gps > 0) {
+                const added = gps * delta;
+                game.gems += added;
+                game.totalGemsEarned += added;
+            }
+            updateUI();
+        }, 100);
+
+        // Systemtakt-Timer (Sekunde) für Spielzeit, Erfolge & Auto-Save
+        setInterval(() => {
+            game.playTime++;
+            checkAchievements();
+            if (game.playTime % 10 === 0) {
+                saveGame();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
+
+```
